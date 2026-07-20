@@ -27,10 +27,15 @@ html, body, [class*="css"] {
     background: linear-gradient(160deg, #1a1140 0%, #3a2a8c 45%, #2e5fd9 100%);
 }
 
-/* Hide Streamlit chrome */
-#MainMenu {visibility:hidden;}
-footer {visibility:hidden;}
-header {visibility:hidden;}
+/* Hide Streamlit chrome completely (display:none removes the reserved
+   space/background that visibility:hidden leaves behind) */
+#MainMenu {display:none !important;}
+footer {display:none !important;}
+header {display:none !important;}
+div[data-testid="stToolbar"]{display:none !important;}
+div[data-testid="stDecoration"]{display:none !important;}
+div[data-testid="stStatusWidget"]{display:none !important;}
+[data-testid="stHeader"]{display:none !important;}
 
 /* Kill default block padding so the card sits cleanly at the top */
 .block-container{
