@@ -2,125 +2,152 @@ import streamlit as st
 import pandas as pd
 import joblib
 
-# ------------------ Page Config ------------------
+# -------------------- PAGE CONFIG --------------------
 st.set_page_config(
-    page_title="Student Stress Predictor",
+    page_title="Student Stress Level Prediction",
     page_icon="🧠",
     layout="centered"
 )
 
-# ------------------ Custom CSS ------------------
+# -------------------- LOAD MODEL --------------------
+model = joblib.load("student_stress_model.pkl")
+scaler = joblib.load("scaler.pkl")
+
+# -------------------- CSS --------------------
 st.markdown("""
 <style>
+
 .stApp{
-    background: linear-gradient(135deg,#6a11cb,#2575fc);
+    background: linear-gradient(135deg,#5B2CFF,#2E86FF);
 }
 
+/* Hide Streamlit menu */
+#MainMenu {visibility:hidden;}
+footer {visibility:hidden;}
+header {visibility:hidden;}
+
+/* Main Card */
 .main-card{
-    background:white;
-    padding:30px;
+    background:rgba(255,255,255,0.12);
+    padding:35px;
     border-radius:20px;
-    box-shadow:0px 8px 20px rgba(0,0,0,0.25);
+    backdrop-filter: blur(12px);
+    box-shadow:0px 8px 30px rgba(0,0,0,.25);
 }
 
+/* Title */
 .title{
     text-align:center;
-    color:#0f172a;
-    font-size:38px;
+    color:white;
+    font-size:40px;
     font-weight:bold;
 }
 
 .subtitle{
     text-align:center;
-    color:gray;
+    color:#eeeeee;
+    font-size:18px;
     margin-bottom:20px;
 }
 
-.result-low{
+/* Result Cards */
+
+.low{
     background:#d4edda;
-    padding:20px;
-    border-radius:15px;
     color:#155724;
-    font-size:22px;
+    padding:20px;
+    border-radius:15px;
     text-align:center;
+    font-size:24px;
     font-weight:bold;
 }
 
-.result-medium{
+.medium{
     background:#fff3cd;
+    color:#856404;
     padding:20px;
     border-radius:15px;
-    color:#856404;
-    font-size:22px;
     text-align:center;
+    font-size:24px;
     font-weight:bold;
 }
 
-.result-high{
+.high{
     background:#f8d7da;
+    color:#721c24;
     padding:20px;
     border-radius:15px;
-    color:#721c24;
-    font-size:22px;
     text-align:center;
+    font-size:24px;
     font-weight:bold;
 }
+
 </style>
 """, unsafe_allow_html=True)
 
-# ------------------ Load Model ------------------
-model = joblib.load("student_stress_model.pkl")
-scaler = joblib.load("scaler.pkl")
+# -------------------- SIDEBAR --------------------
 
-# ------------------ Sidebar ------------------
 st.sidebar.title("🧠 Student Stress Predictor")
-st.sidebar.info("""
-Predict the stress level of a student using Machine Learning.
 
+st.sidebar.success("Machine Learning Project")
+
+st.sidebar.markdown("""
 ### Features Used
-- Student Type
-- Sleep Hours
-- Study Hours
-- Social Media
-- Attendance
-- Exam Pressure
-- Family Support
+
+- 🎓 Student Type
+- 😴 Sleep Hours
+- 📚 Study Hours
+- 📱 Social Media
+- 🏫 Attendance
+- 😰 Exam Pressure
+- ❤️ Family Support
 """)
 
-# ------------------ Main Card ------------------
+# -------------------- MAIN CARD --------------------
+
 st.markdown('<div class="main-card">', unsafe_allow_html=True)
 
-st.markdown('<div class="title">🎓 Student Stress Level Prediction</div>', unsafe_allow_html=True)
+st.markdown('<div class="title">🧠 Student Stress Level Prediction</div>', unsafe_allow_html=True)
 
-st.markdown('<div class="subtitle">Fill all the details below and click Predict.</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Predict stress level using Machine Learning</div>', unsafe_allow_html=True)
 
 student_type = st.selectbox(
     "🎓 Student Type",
-    ["School", "College", "Working_Student"]
+    ["School","College","Working_Student"]
 )
 
-col1, col2 = st.columns(2)
+col1,col2 = st.columns(2)
 
 with col1:
+
     sleep_hours = st.number_input(
         "😴 Sleep Hours",
-        0.0, 12.0, 7.0
+        min_value=0.0,
+        max_value=12.0,
+        value=7.0
     )
 
     study_hours = st.number_input(
         "📚 Study Hours",
-        0.0, 15.0, 4.0
+        min_value=0.0,
+        max_value=15.0,
+        value=4.0
     )
 
 with col2:
+
     social_media = st.number_input(
         "📱 Social Media Hours",
-        0.0, 15.0, 2.0
+        min_value=0.0,
+        max_value=15.0,
+        value=2.0
     )
 
     attendance = st.number_input(
         "🏫 Attendance %",
-        0.0, 100.0, 75.0
+        min_value=0.0,
+        max_value=100.0,
+        value=75.0
     )
 
 exam_pressure = st.slider(
@@ -143,9 +170,12 @@ student_type = student_type_map[student_type]
 
 st.write("")
 
+# -------------------- PREDICT --------------------
+
 if st.button("🚀 Predict Stress Level", use_container_width=True):
 
-    new_student = pd.DataFrame({
+    input_df = pd.DataFrame({
+
         "Student_Type":[student_type],
         "Sleep_Hours":[sleep_hours],
         "Study_Hours":[study_hours],
@@ -153,29 +183,33 @@ if st.button("🚀 Predict Stress Level", use_container_width=True):
         "Attendance":[attendance],
         "Exam_Pressure":[exam_pressure],
         "Family_Support":[family_support]
+
     })
 
-    new_student_scaled = scaler.transform(new_student)
+    input_scaled = scaler.transform(input_df)
 
-    prediction = model.predict(new_student_scaled)[0]
+    prediction = model.predict(input_scaled)[0]
 
-    st.divider()
+    st.markdown("---")
 
     if prediction == 0:
+
         st.markdown(
-            '<div class="result-low">🟢 Predicted Stress Level : LOW 😊</div>',
+            '<div class="low">🟢 LOW STRESS 😊<br><br>Keep maintaining your healthy routine.</div>',
             unsafe_allow_html=True
         )
 
     elif prediction == 1:
+
         st.markdown(
-            '<div class="result-medium">🟡 Predicted Stress Level : MEDIUM 😐</div>',
+            '<div class="medium">🟡 MEDIUM STRESS 😐<br><br>Take regular breaks and manage your time.</div>',
             unsafe_allow_html=True
         )
 
     else:
+
         st.markdown(
-            '<div class="result-high">🔴 Predicted Stress Level : HIGH 😟</div>',
+            '<div class="high">🔴 HIGH STRESS 😟<br><br>Reduce workload, sleep well and seek support.</div>',
             unsafe_allow_html=True
         )
 
