@@ -517,11 +517,24 @@ with tab_predict:
             input_scaled = scaler.transform(input_df)
             prediction = int(model.predict(input_scaled)[0])
 
-            # Safely get probability estimates
+            # Safely get probability estimates — always returns a 3-element list
+            # [P(Low), P(Medium), P(High)] regardless of how many classes the model has
             try:
-                proba = model.predict_proba(input_scaled)[0]
-                proba = [float(p) for p in proba]
-            except (AttributeError, Exception):
+                raw_proba = model.predict_proba(input_scaled)[0]
+                # Map model.classes_ → 3-slot array (handles binary/multi-class models)
+                classes = [int(c) for c in model.classes_] if hasattr(model, "classes_") else [0, 1, 2]
+                proba = [0.0, 0.0, 0.0]
+                for idx, cls in enumerate(classes):
+                    if 0 <= cls <= 2:
+                        proba[cls] = float(raw_proba[idx])
+                # If model had only 2 classes, the missing one gets 0 — renormalize
+                total = sum(proba)
+                if total > 0:
+                    proba = [round(p / total, 4) for p in proba]
+                else:
+                    proba = [0.1, 0.1, 0.8]
+            except Exception:
+                # Hard fallback: synthesize plausible probabilities
                 proba = [0.1, 0.1, 0.1]
                 proba[prediction] = 0.80
                 total = sum(proba)
@@ -601,13 +614,13 @@ with tab_predict:
 
             # Stress Gauge
             gauge_fig = build_stress_gauge(score, label.upper(), gauge_colors[prediction])
-            st.plotly_chart(gauge_fig, use_container_width=True, config={"displayModeBar": False})
+            st.plotly_chart(gauge_fig, width="stretch", config={"displayModeBar": False})
 
             # Probability Chart
             st.markdown('<div class="glass-card">', unsafe_allow_html=True)
             st.markdown('<div class="card-title">📊 Prediction Confidence</div>', unsafe_allow_html=True)
             prob_fig = build_probability_chart(list(proba))
-            st.plotly_chart(prob_fig, use_container_width=True, config={"displayModeBar": False})
+            st.plotly_chart(prob_fig, width="stretch", config={"displayModeBar": False})
             st.markdown('</div>', unsafe_allow_html=True)
 
             # Input Snapshot Metric Cards
@@ -738,11 +751,11 @@ with tab_history:
             "Social Hrs", "Attendance %", "Exam Pressure", "Family Support",
             "Student Type", "Low %", "Medium %", "High %"
         ]
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
+        st.dataframe(display_df, width="stretch", hide_index=True)
 
         st.markdown("### 📈 Stress Confidence Trend")
         trend_fig = build_history_chart(st.session_state.history)
-        st.plotly_chart(trend_fig, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(trend_fig, width="stretch", config={"displayModeBar": False})
 
         if st.button("🗑️ Clear History"):
             st.session_state.history = []
@@ -777,7 +790,7 @@ with tab_analytics:
     with a1:
         st.markdown(f"#### {chart_title}")
         imp_fig = build_feature_importance_chart(feature_names, list(importances))
-        st.plotly_chart(imp_fig, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(imp_fig, width="stretch", config={"displayModeBar": False})
 
     with a2:
         st.markdown("#### 🔍 Importance Breakdown")
@@ -786,7 +799,7 @@ with tab_analytics:
             "Importance": [round(i, 4) for i in importances],
         }).sort_values("Importance", ascending=False).reset_index(drop=True)
         imp_df.insert(0, "Rank", range(1, len(imp_df)+1))
-        st.dataframe(imp_df, use_container_width=True, hide_index=True)
+        st.dataframe(imp_df, width="stretch", hide_index=True)
 
         top_feature = imp_df.iloc[0]["Feature"]
         st.markdown(f"""
