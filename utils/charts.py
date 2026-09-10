@@ -146,10 +146,19 @@ def build_history_chart(history: list) -> go.Figure:
     label_map = {"Low": 0, "Medium": 1, "High": 2}
     color_map = {"Low": "#4cd97b", "Medium": "#ffcc00", "High": "#ff453a"}
 
-    runs = [h["run"] for h in history]
-    scores = [h["score"] for h in history]
-    labels = [h["label"] for h in history]
-    colors = [color_map[l] for l in labels]
+    if not history:
+        fig = go.Figure()
+        fig.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            height=220,
+        )
+        return fig
+
+    runs = [h.get("run", i + 1) for i, h in enumerate(history)]
+    scores = [h.get("score", 0) for h in history]
+    labels = [h.get("label", "Medium") for h in history]
+    colors = [color_map.get(l, "#ffcc00") for l in labels]
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -165,18 +174,16 @@ def build_history_chart(history: list) -> go.Figure:
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         xaxis=dict(
-            title="Prediction Run",
+            title=dict(text="Prediction Run", font=dict(color="rgba(255,255,255,0.7)")),
             showgrid=False,
             tickfont=dict(color="rgba(255,255,255,0.7)"),
-            titlefont=dict(color="rgba(255,255,255,0.7)"),
         ),
         yaxis=dict(
-            title="Stress Score",
+            title=dict(text="Stress Score", font=dict(color="rgba(255,255,255,0.7)")),
             range=[-10, 110],
             showgrid=True,
             gridcolor="rgba(255,255,255,0.05)",
             tickfont=dict(color="rgba(255,255,255,0.7)"),
-            titlefont=dict(color="rgba(255,255,255,0.7)"),
         ),
         margin=dict(t=10, b=40, l=10, r=10),
         height=220,

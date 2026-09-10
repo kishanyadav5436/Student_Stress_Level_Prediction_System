@@ -754,8 +754,11 @@ with tab_history:
         st.dataframe(display_df, width="stretch", hide_index=True)
 
         st.markdown("### 📈 Stress Confidence Trend")
-        trend_fig = build_history_chart(st.session_state.history)
-        st.plotly_chart(trend_fig, width="stretch", config={"displayModeBar": False})
+        try:
+            trend_fig = build_history_chart(st.session_state.history)
+            st.plotly_chart(trend_fig, width="stretch", config={"displayModeBar": False})
+        except Exception:
+            st.caption("Trend chart will display as more predictions are recorded.")
 
         if st.button("🗑️ Clear History"):
             st.session_state.history = []
