@@ -2,12 +2,20 @@ import streamlit as st
 import pandas as pd
 import joblib
 import numpy as np
-import sys, os
 
-# Add utils to path
-sys.path.insert(0, os.path.dirname(__file__))
 from utils.recommendations import get_all_recommendations
-from utils.charts import build_stress_gauge, build_probability_chart
+from utils.charts import (
+    build_stress_gauge,
+    build_probability_chart,
+    build_feature_importance_chart,
+    build_history_chart,
+)
+
+try:
+    from utils.pdf_report import generate_pdf_report
+    PDF_AVAILABLE = True
+except Exception:
+    PDF_AVAILABLE = False
 
 # -------------------- PAGE CONFIG --------------------
 st.set_page_config(
@@ -509,7 +517,6 @@ with tab_predict:
             """, unsafe_allow_html=True)
 
             # Stress Gauge
-            from utils.charts import build_stress_gauge, build_probability_chart
             gauge_fig = build_stress_gauge(score, label.upper(), gauge_colors[prediction])
             st.plotly_chart(gauge_fig, use_container_width=True, config={"displayModeBar": False})
 
@@ -578,30 +585,32 @@ with tab_predict:
 
             with dl_col2:
                 # PDF Download
-                try:
-                    from utils.pdf_report import generate_pdf_report
-                    pdf_bytes = generate_pdf_report(
-                        prediction_label=label,
-                        stress_score=score,
-                        proba=proba,
-                        sleep_hours=sleep_hours,
-                        study_hours=study_hours,
-                        social_media=social_media,
-                        attendance=attendance,
-                        exam_pressure=exam_pressure,
-                        family_support=family_support,
-                        student_type=student_type,
-                        recommendations=recs
-                    )
-                    st.download_button(
-                        "📄 Download Report (PDF)",
-                        data=pdf_bytes,
-                        file_name="stress_report.pdf",
-                        mime="application/pdf",
-                        use_container_width=True
-                    )
-                except ImportError:
-                    st.info("Install `fpdf2` for PDF export: `pip install fpdf2`")
+                if PDF_AVAILABLE:
+                    try:
+                        pdf_bytes = generate_pdf_report(
+                            prediction_label=label,
+                            stress_score=score,
+                            proba=proba,
+                            sleep_hours=sleep_hours,
+                            study_hours=study_hours,
+                            social_media=social_media,
+                            attendance=attendance,
+                            exam_pressure=exam_pressure,
+                            family_support=family_support,
+                            student_type=student_type,
+                            recommendations=recs
+                        )
+                        st.download_button(
+                            "📄 Download Report (PDF)",
+                            data=pdf_bytes,
+                            file_name="stress_report.pdf",
+                            mime="application/pdf",
+                            use_container_width=True
+                        )
+                    except Exception as e:
+                        st.warning(f"PDF generation failed: {e}")
+                else:
+                    st.info("PDF export requires `fpdf2`. Add it to requirements.txt.")
 
         else:
             st.markdown('<div class="glass-card" style="text-align:center;padding:60px 20px;">', unsafe_allow_html=True)
@@ -657,7 +666,6 @@ with tab_history:
         st.dataframe(display_df, use_container_width=True, hide_index=True)
 
         # Trend chart
-        from utils.charts import build_history_chart
         st.markdown("### 📈 Stress Confidence Trend")
         trend_fig = build_history_chart(st.session_state.history)
         st.plotly_chart(trend_fig, use_container_width=True, config={"displayModeBar": False})
@@ -676,7 +684,6 @@ with tab_analytics:
     st.markdown("### 📊 Model Analytics")
 
     # Feature Importance
-    from utils.charts import build_feature_importance_chart
 
     feature_names = [
         "Student Type", "Sleep Hours", "Study Hours",
